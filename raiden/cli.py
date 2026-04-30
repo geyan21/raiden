@@ -342,6 +342,70 @@ class ShardifyCommand:
 
 
 @dataclass
+class InferCommand:
+    """Run policy inference directly on the robot.
+
+    Loads a model bridge (module:class) that implements ModelBridge, then runs
+    closed-loop inference using live camera and proprioception data.
+
+    Example::
+
+        rd infer --bridge deployment.openpi_bridge:OpenPiBridge \\
+                 --ckpt_path unused \\
+                 --bridge-kwargs host=localhost port=8000 prompt='pick up the lock'
+    """
+
+    bridge: str = ""
+    """Bridge class as 'module.path:ClassName'
+    (e.g. 'deployment.openpi_bridge:OpenPiBridge')."""
+
+    ckpt_path: str = ""
+    """Path to model checkpoint, or 'unused' when the bridge connects to a
+    remote server that loads the weights itself."""
+
+    action_hz: float = 30.0
+    """Control loop frequency in Hz (default: 30, matches training data rate)."""
+
+    camera_config_file: str = ""
+    """Path to camera.json (default: ~/.config/raiden/camera.json)."""
+
+    calibration_file: str = ""
+    """Path to calibration_results.json (default: ~/.config/raiden/calibration_results.json)."""
+
+    stereo_method: Literal["zed", "ffs", "tri_stereo"] = "zed"
+    """Depth backend: 'zed' (SDK NEURAL_LIGHT), 'ffs' (Fast Foundation Stereo), or 'tri_stereo' (TRI Stereo)."""
+
+    ffs_scale: float = 1.0
+    """Input resize scale for FFS inference. Only used when stereo_method=ffs."""
+
+    ffs_iters: int = 8
+    """FFS update iterations (default 8). Only used when stereo_method=ffs."""
+
+    tri_stereo_variant: Literal["c32", "c64"] = "c64"
+    """TRI Stereo model variant. Only used when stereo_method=tri_stereo."""
+
+    max_joint_delta: float = 0.2
+    """Maximum allowed joint delta per step in radians. Inference aborts if exceeded."""
+
+    action_type: Literal["joint", "ee_pose"] = "joint"
+    """Action type emitted by the bridge: 'joint' (14-D joint angles) or 'ee_pose'
+    (20-D EE pose with on-the-fly IK)."""
+
+    no_depth: bool = False
+    """Disable depth sensing on ZED cameras (faster, no NEURAL_LIGHT inference)."""
+
+    resize_images: Optional[str] = "384x384"
+    """Resize images to HxW before feeding the bridge (default: '384x384'). Pass empty string to disable."""
+
+    visualize: bool = False
+    """Stream camera images to a Rerun web viewer at 30 FPS."""
+
+    bridge_kwargs: tuple[str, ...] = ()
+    """Extra key=value pairs forwarded to bridge.load()
+    (e.g. --bridge-kwargs host=localhost port=8000 prompt='pick up the box')."""
+
+
+@dataclass
 class ServeCommand:
     """Start the chiral policy server"""
 
@@ -419,6 +483,7 @@ def _print_help() -> None:
     print(
         "  serve                       Start the chiral policy server for live inference"
     )
+    print("  infer                       Run policy inference directly on the robot")
     print(
         "  make_ffs_onnx               Export Fast Foundation Stereo model to ONNX / TensorRT engines"
     )
@@ -736,6 +801,54 @@ def main():
                 resize_images_size=resize,
                 visualize=command.visualize,
             )
+
+        elif subcommand == "infer":
+            sys.argv.pop(1)
+            command = tyro.cli(
+                InferCommand,
+                description="Run policy inference directly on the robot",
+            )
+            if not command.bridge:
+                print("Error: --bridge is required (module.path:ClassName)")
+                sys.exit(1)
+
+            from raiden.inference import RaidenInferenceLoop, load_bridge
+
+            extra_kwargs: dict[str, str] = {}
+            for kv in command.bridge_kwargs:
+                key, sep, value = kv.partition("=")
+                if not sep:
+                    print(
+                        f"Invalid --bridge-kwargs entry {kv!r}: expected key=value"
+                    )
+                    sys.exit(1)
+                extra_kwargs[key] = value
+
+            bridge = load_bridge(command.bridge)
+
+            resize: tuple | None = None
+            if command.resize_images:
+                h, w = command.resize_images.split("x")
+                resize = (int(h), int(w))
+
+            loop = RaidenInferenceLoop(
+                bridge=bridge,
+                ckpt_path=command.ckpt_path,
+                action_hz=command.action_hz,
+                bridge_kwargs=extra_kwargs,
+                camera_config_file=command.camera_config_file or CAMERA_CONFIG,
+                calibration_file=command.calibration_file or CALIBRATION_FILE,
+                stereo_method=command.stereo_method,
+                ffs_scale=command.ffs_scale,
+                ffs_iters=command.ffs_iters,
+                tri_stereo_variant=command.tri_stereo_variant,
+                max_joint_delta=command.max_joint_delta,
+                action_type=command.action_type,
+                no_depth=command.no_depth,
+                resize_images_size=resize,
+                visualize=command.visualize,
+            )
+            loop.run()
 
         elif subcommand == "make_ffs_onnx":
             sys.argv.pop(1)
