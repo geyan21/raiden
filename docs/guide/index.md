@@ -11,8 +11,9 @@
 7. **[Convert to dataset](conversion.md)** - extract frames, synchronize multi-camera streams, and interpolate joint poses into a structured dataset.
 8. **[Shardify](shardify.md)** - export converted episodes to WebDataset sharded `.tar` files for policy training.
 9. **[Evaluation](serve.md)** - run the live policy inference server (chiral protocol).
-10. **[Replay](replay.md)** - replay recorded follower arm motion on the physical hardware to verify a recording.
-11. **[Visualize](visualization.md)** - inspect converted recordings interactively in Rerun.
+10. **[Recovery data collection](recovery.md)** - collect HG-DAgger interactive corrections to fix a drifting policy.
+11. **[Replay](replay.md)** - replay recorded follower arm motion on the physical hardware to verify a recording.
+12. **[Visualize](visualization.md)** - inspect converted recordings interactively in Rerun.
 
 ## Commands
 
@@ -26,6 +27,7 @@
 | `rd convert` | Convert raw recordings to a structured dataset |
 | `rd shardify` | Export converted episodes to WebDataset shards |
 | `rd serve` | Start the chiral policy server for live inference |
+| `rd infer` | Local inference loop + HG-DAgger interactive correction |
 | `rd replay` | Replay recorded follower arm motion |
 | `rd visualize` | Visualize a converted recording with Rerun |
 

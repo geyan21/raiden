@@ -7,6 +7,7 @@
         - RecordCommand
         - InspectCommand
         - ConvertCommand
+        - InferCommand
         - VisualizeCommand
         - CalibrateCommand
         - RecordCalibrationPosesCommand

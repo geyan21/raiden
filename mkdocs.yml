@@ -62,8 +62,9 @@ nav:
     - "8. Conversion": guide/conversion.md
     - "9. Shardify": guide/shardify.md
     - "10. Evaluation": guide/serve.md
-    - "11. Replay": guide/replay.md
-    - "12. Visualization": guide/visualization.md
+    - "11. Recovery Data Collection": guide/recovery.md
+    - "12. Replay": guide/replay.md
+    - "13. Visualization": guide/visualization.md
     - Safety: guide/safety.md
     - FAQ: guide/faq.md
   - API Reference:
@@ -74,6 +75,7 @@ nav:
     - Recorder: api/recorder.md
     - Converter: api/converter.md
     - Inspector: api/inspector.md
+    - Inference: api/inference.md
     - Visualizer: api/visualizer.md
     - Calibration: api/calibration.md
 
