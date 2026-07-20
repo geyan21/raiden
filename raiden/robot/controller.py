@@ -79,6 +79,16 @@ _GRIPPER_SAFETY_THRESHOLD = 6.0 / 71.0
 # Full stroke (71 mm) closes/opens in 1/_GRIPPER_SPEED seconds.
 _GRIPPER_SPEED = 1.0
 
+# Full-close snap for the HG-DAgger takeover path, in normalized [0,1] gripper
+# space (0 = closed, 1 = open).  The leader trigger's physical throw saturates a
+# few percent short of the passive encoder's hardcoded range, so a full squeeze
+# only drives the gripper command down to ~0.04 instead of 0.0 and the follower
+# never fully closes — it holds a visible gap and drops small parts.  Snap a
+# nearly-bottomed trigger to a complete close so a takeover can command a full
+# grasp.  Applied only in _grip_clutch (the takeover path), NOT in the shared
+# leader read, so `rd teleop` / `rd record` behaviour is unchanged.
+_GRIP_FULL_CLOSE_SNAP = 0.05
+
 # ---------------------------------------------------------------------------
 # Pyroki / J-PARSE IK helpers
 # ---------------------------------------------------------------------------
@@ -271,13 +281,19 @@ def _grip_clutch(
     be shadowed onto the follower during policy mode — at takeover it sits
     wherever the operator's hand left it, uncorrelated with the policy's gripper.
     A relative/delta map then saturates: with the trigger parked at an end of its
-    travel the operator loses authority in one direction (e.g. trigger=0, grip=1
-    → can't open).  Instead HOLD the policy's gripper (``f0_grip``) until the
-    passive trigger crosses it, then track the trigger ABSOLUTELY (full 0–1
-    range) from there: no snap at takeover, never moves the gripper in an
-    unintended direction, and ``engaged`` latches True so a later trigger
-    reversal stays in absolute control.  Returns ``(cmd, engaged)``.
+    travel the operator loses authority in one direction (e.g. trigger parked at
+    0 with grip=1 → can never close).  Instead HOLD the policy's gripper
+    (``f0_grip``) until the passive trigger crosses it, then track the trigger
+    ABSOLUTELY (full 0–1 range) from there: no jump at takeover, never moves the
+    gripper in an unintended direction, and ``engaged`` latches True so a later
+    trigger reversal stays in absolute control.  Returns ``(cmd, engaged)``.
+
+    All values are in normalized gripper space: **0 = closed, 1 = open**.
     """
+    # Recover the last few percent of squeeze the trigger cannot physically
+    # reach, so a takeover can still command a full grasp.
+    if trigger <= _GRIP_FULL_CLOSE_SNAP:
+        trigger = 0.0
     if not engaged and (
         np.sign(l0_grip - f0_grip) == 0
         or np.sign(trigger - f0_grip) != np.sign(l0_grip - f0_grip)
