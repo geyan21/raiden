@@ -89,9 +89,9 @@ class ModelBridge(ABC):
     joint order (TRI convention)::
 
         [0:6]   left arm joint angles (rad)
-        [6]     left gripper (0=open, 1=closed)
+        [6]     left gripper (0=closed, 1=open)
         [7:13]  right arm joint angles (rad)
-        [13]    right gripper (0=open, 1=closed)
+        [13]    right gripper (0=closed, 1=open)
 
     This is the same layout the TRI server's ``_ee_pose_to_joint_cmd`` produces
     for ``action_type="ee_pose"``, so both action types command the same arms.
