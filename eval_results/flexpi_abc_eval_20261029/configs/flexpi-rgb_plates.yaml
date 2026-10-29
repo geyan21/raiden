@@ -1,0 +1,25 @@
+rd_infer:
+  bridge: experiments.yam.flexpi_policy.yam_raiden_bridge_ws:YamFlexPiRaidenBridgeWS
+  ckpt_path: unused
+  camera_config_file: /home/rseyam/projects/YAM_robot/config/camera_config.json
+  calibration_file: /home/rseyam/projects/YAM_robot/config/calibration_results.json
+  action_hz: 30
+  action_type: ee_pose
+  max_joint_delta: 0.8
+  chunk_size: 32
+  record_camera_dir: /home/rseyam/projects/tmp/flexpi_abc_eval/flexpi-rgb_plates
+
+bridge_kwargs:
+  host: localhost
+  port: 8000
+  action_horizon: 32
+  action_source: eef_ik
+  use_depth: false
+  prompt: "load the plates into the dish rack"
+
+eval:
+  n_evals: 10
+  timeout_s: 180
+  startup_timeout_s: 300
+  stop_grace_s: 120
+  out_dir: /home/rseyam/projects/tmp/flexpi_abc_eval/runs/flexpi-rgb_plates
